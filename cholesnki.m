@@ -1,4 +1,4 @@
-matrix = load('cfd1.mat');
+matrix = load('data/cfd1.mat');
 A = sparse(matrix.Problem.A);
 
 % - Trova gli indici e valori non nulli (inclusi zeri espliciti)
