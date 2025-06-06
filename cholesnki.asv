@@ -1,37 +1,55 @@
-matrix = load('StocF-1465.mat');
+clearvars; clc;
 
-[i,j,s] = find(A);          % Trova gli indici e valori non nulli (inclusi zeri espliciti)
-mask = s ~= 0;              % Filtra solo i valori diversi da zero
-A = sparse(i(mask), j(mask), s(mask), size(A,1), size(A,2));  % Ricrea la matrice
-disp(matrix.Problem.name); %stampa nome matrice
+% Lista dei file con le matrici da testare
+matFiles = {'data/cfd1.mat', 'data/cfd2.mat', 'data/ex15.mat', 'data/shallow_water1.mat', 'data/parabolic_fem.mat', 'data/G3_circuit.mat', 'data/apache2.mat'};
 
-% Calcolo del numero di condizionamento della matrice.
-k = condest(A); 
-disp(k);
+for k = 1:length(matFiles)
+    % Caricamento selettivo
+    data = load(matFiles{k}, 'Problem');
+    A = data.Problem.A;
 
-disp(nnz(A));
+    % Pulizia zeri espliciti
+    [i, j, v] = find(A);
+    A = sparse(i(v ~= 0), j(v ~= 0), v(v ~= 0), size(A,1), size(A,2));
 
-% Impostazione della soluzione esatta formata solo da 1.
-xe = ones(length(A),1);
+    % Dimensione matrice
+    n = size(A,1);
 
-% Calcolo del vettore dei termini noti a partire dalla matrice A e
-% dalla soluzione esatta.
-b = A*xe;
+    % Soluzione esatta
+    xe = ones(n,1);
+    b = A * xe;
 
-% misura memoria prima dell'esecuzione
-[mem1, ~] = memory;
+    % Stato prima
+    m1 = whos;
 
-tic; %inizia a contare tempo
+    % Risoluzione sistema
+    tic;
+    x = A \ b;
+    t = toc;
 
-x = A\b;
+    % Stato dopo
+    m2 = whos;
 
-time = toc; %termnina di contare tempo
+    % Errore relativo
+    err = norm(x - xe) / norm(xe);
 
-% misura memoria dopo
-[mem2, ~] = memory;
+    % Memoria in MB
+    mem1 = sum([m1.bytes]);
+    mem2 = sum([m2.bytes]);
+    mem = (mem2 - mem1) / 1024^2;
 
-%calcolo errore relativo
-error = norm(x-xe,2)/norm(xe,2); 
+    % Output a console
+    fprintf('Matrix: %s | n = %d | Time = %.3f s | Error = %.2e | Memory = %.2f MB\n', ...
+        data.Problem.name, n, t, err, mem);
 
-disp(error);
-disp(time);
+    % --- Grafico per questa matrice ---
+    figure;
+    values = [t, err, mem];
+    labels = {'Tempo (s)', 'Errore relativo', 'Memoria (MB)'};
+    bar(values);
+    set(gca, 'YScale', 'log');  % scala logaritmica in ordinata
+    set(gca, 'XTickLabel', labels);
+    ylabel('Valore (scala log)');
+    title(sprintf('Prestazioni per la matrice "%s" (n = %d)', data.Problem.name, n));
+    grid on;
+end

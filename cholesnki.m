@@ -1,42 +1,66 @@
-matrix = load('data/cfd1.mat');
-A = sparse(matrix.Problem.A);
+clearvars; clc;
 
-% - Trova gli indici e valori non nulli (inclusi zeri espliciti)
-% - Filtra solo i valori diversi da zero
-% - Ricrea la matrice
-[i,j,s] = find(A);          
-mask = s ~= 0;             
-A = sparse(i(mask), j(mask), s(mask), size(A,1), size(A,2)); 
+% Lista dei file con le matrici
+matFiles = {
+    'data/ex15.mat', 
+    'data/shallow_water1.mat', 
+    'data/cfd1.mat', 
+    'data/cfd2.mat',
+    'data/parabolic_fem.mat', 
+    'data/apache2.mat', 
+    'data/G3_circuit.mat'
+};
 
-disp(matrix.Problem.name); %stampa nome matrice
+% Preallocazione
+matrixNames = strings(1, length(matFiles));
+times = zeros(1, length(matFiles));
+errors = zeros(1, length(matFiles));
+memories = zeros(1, length(matFiles));
 
-% Calcolo del numero di condizionamento della matrice.
-k = condest(A); 
+% Ciclo sulle matrici
+for k = 1:length(matFiles)
+    data = load(matFiles{k}, 'Problem');
+    A = data.Problem.A;
 
-% Impostazione della soluzione esatta formata solo da 1.
-xe = ones(length(A),1);
+    % Pulizia zeri espliciti
+    [i, j, v] = find(A);
+    A = sparse(i(v ~= 0), j(v ~= 0), v(v ~= 0), size(A,1), size(A,2));
 
-% Calcolo del vettore dei termini noti a partire dalla matrice A e
-% dalla soluzione esatta.
-b = A*xe;
+    n = size(A,1);
+    xe = ones(n,1);
+    b = A * xe;
 
-% stato prima
-m1 = whos; 
-tic; %inizia a contare tempo
+    m1 = whos;
+    tic;
+    x = A \ b;
+    t = toc;
+    m2 = whos;
 
-x = A\b;
+    err = norm(x - xe) / norm(xe);
+    mem = (sum([m2.bytes]) - sum([m1.bytes])) / 1024^2;
 
-%termnina di contare tempo
-time = toc; 
-% stato dopo
-m2 = whos; 
+    % Salvataggio risultati
+    matrixNames(k) = data.Problem.name;
+    times(k) = t;
+    errors(k) = err;
+    memories(k) = mem;
+end
 
-mem1 = sum([m1.bytes]);
-mem2 = sum([m2.bytes]);
+% --- Grafico unico ---
+figure;
+hold on;
 
-%calcolo errore relativo
-error = norm(x-xe,2)/norm(xe,2); 
+% Plot (usa loglog per entrambe le scale log, oppure semilogy per solo Y log)
+semilogy(1:length(matFiles), memories, '-o', 'LineWidth', 2, 'Color', [1 0.5 0]); % chol_size
+semilogy(1:length(matFiles), times, '-o', 'LineWidth', 2, 'Color', [1 0.8 0]);   % total_time
+semilogy(1:length(matFiles), errors, '-o', 'LineWidth', 2, 'Color', [0 0.6 0]);  % err
 
-disp("relative error: "+ error);
-disp("time for cholesnki calcolation: "+time);
-disp("memory in MB used for cholesnki calcolation:"+(mem2 - mem1) / 1024^2);
+% Etichette e leggenda
+xticks(1:length(matFiles));
+xticklabels(matrixNames);
+xtickangle(45);
+
+ylabel('Valore (scala log)');
+title('Prestazioni risoluzione sistemi lineari');
+legend({'chol\_size (MB)', 'total\_time (s)', 'err'}, 'Location', 'southwest');
+grid on;
