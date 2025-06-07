@@ -1,6 +1,6 @@
 clearvars; clc;
 
-Lista dei file con le matrici
+%Lista dei file con le matrici
 matFiles = {
     'data/ex15.mat', 
     'data/shallow_water1.mat', 
@@ -12,8 +12,6 @@ matFiles = {
     'data/Flan_1565.mat',
     'data/StocF-1465.mat'
 };
-
-matFiles = {};
 
 % Preallocazione
 matrixNames = strings(1, length(matFiles));
