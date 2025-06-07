@@ -1,6 +1,6 @@
 clearvars; clc;
 
-% Lista dei file con le matrici
+Lista dei file con le matrici
 matFiles = {
     'data/ex15.mat', 
     'data/shallow_water1.mat', 
@@ -8,8 +8,12 @@ matFiles = {
     'data/cfd2.mat',
     'data/parabolic_fem.mat', 
     'data/apache2.mat', 
-    'data/G3_circuit.mat'
+    'data/G3_circuit.mat',
+    'data/Flan_1565.mat',
+    'data/StocF-1465.mat'
 };
+
+matFiles = {};
 
 % Preallocazione
 matrixNames = strings(1, length(matFiles));
@@ -20,11 +24,10 @@ memories = zeros(1, length(matFiles));
 % Ciclo sulle matrici
 for k = 1:length(matFiles)
     data = load(matFiles{k}, 'Problem');
-    A = data.Problem.A;
+    A = sparse(data.Problem.A);
 
     % Pulizia zeri espliciti
-    [i, j, v] = find(A);
-    A = sparse(i(v ~= 0), j(v ~= 0), v(v ~= 0), size(A,1), size(A,2));
+    A = spfun(@(x) x, A);
 
     n = size(A,1);
     xe = ones(n,1);
@@ -45,6 +48,12 @@ for k = 1:length(matFiles)
     errors(k) = err;
     memories(k) = mem;
 end
+
+T = table(matrixNames.', times.', memories.', errors.', ...
+    'VariableNames', {'Matrix', 'Time_s', 'Memory_MB', 'Relative_Error'});
+
+disp('--- Risultati delle simulazioni ---');
+disp(T);
 
 % --- Grafico unico ---
 figure;
