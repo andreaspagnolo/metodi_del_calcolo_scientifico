@@ -18,7 +18,6 @@ errors = zeros(1, length(matFiles));
 memories = zeros(1, length(matFiles));
 
 for k = 1:length(matFiles)
-    clearvars -except matFiles matrixNames times errors memories k
 
     data = load(matFiles{k}, 'Problem');
     A = sparse(data.Problem.A);
@@ -63,7 +62,40 @@ T = table(matrixNames.', times.', memories.', errors.', ...
 disp('--- Risultati delle simulazioni ---');
 disp(T);
 
-% --- Grafico --- %
+% --- Grafico Tempo --- %
+figure;
+plot(1:length(matFiles), times, '-o', 'LineWidth', 2, 'Color', [1 0.8 0]);
+xticks(1:length(matFiles));
+xticklabels(matrixNames);
+xtickangle(45);
+ylabel('Tempo (s)');
+xlabel('Matrice');
+title('Tempo di risoluzione per ciascuna matrice');
+grid on;
+
+% --- Grafico Memoria --- %
+figure;
+plot(1:length(matFiles), memories, '-o', 'LineWidth', 2, 'Color', [1 0.5 0]);
+xticks(1:length(matFiles));
+xticklabels(matrixNames);
+xtickangle(45);
+ylabel('Memoria utilizzata (MB)');
+xlabel('Matrice');
+title('Memoria utilizzata per ciascuna matrice');
+grid on;
+
+% --- Grafico Errore --- %
+figure;
+plot(1:length(matFiles), errors, '-o', 'LineWidth', 2, 'Color', [0 0.6 0]);
+xticks(1:length(matFiles));
+xticklabels(matrixNames);
+xtickangle(45);
+ylabel('Errore relativo');
+xlabel('Matrice');
+title('Errore relativo per ciascuna matrice');
+grid on;
+
+% --- Grafico complessivo --- %
 figure;
 hold on;
 
@@ -77,5 +109,5 @@ xtickangle(45);
 
 ylabel('Valore (scala log)');
 title('Prestazioni risoluzione sistemi lineari');
-legend({'Memory (MB)', 'Time (s)', 'Relative Error'}, 'Location', 'southwest');
+legend({'Memory (MB)', 'Time (s)', 'Relative Error'}, 'Location', 'northwest');
 grid on;
