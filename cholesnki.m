@@ -53,6 +53,8 @@ for k = 1:length(matFiles)
     times(k) = t;
     errors(k) = err;
     memories(k) = mem_used;
+
+    clear data A xe b x;
 end
 
 % --- Tabella risultati --- %
