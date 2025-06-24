@@ -22,6 +22,16 @@ for k = 1:length(matFiles)
     data = load(matFiles{k}, 'Problem');
     A = sparse(data.Problem.A);
 
+    %controllo simmetria
+    if ~issymmetric(A)
+        fprintf('[SKIP] Matrice non simmetrica (%d×%d)\n', size(A,1), size(A,2));
+        continue;
+    end
+
+    % Misura memoria prima della risoluzione
+    vars_before = whos;
+    mem_before = sum([vars_before.bytes]) / 1024^2;
+
     % Pulizia zeri espliciti
     A = spfun(@(x) x, A);
 
@@ -29,17 +39,13 @@ for k = 1:length(matFiles)
     xe = ones(n,1);
     b = A * xe;
 
-    % Misura memoria prima della risoluzione
-    vars_before = whos('A', 'b', 'xe');
-    mem_before = sum([vars_before.bytes]) / 1024^2;
-
     % Risoluzione sistema
     tic;
     x = A \ b;
     t = toc;
 
     % Misura memoria dopo la risoluzione
-    vars_after = whos('A', 'b', 'xe', 'x');
+    vars_after = whos;
     mem_after = sum([vars_after.bytes]) / 1024^2;
 
     % Memoria effettiva usata per la soluzione
