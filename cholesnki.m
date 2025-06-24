@@ -28,12 +28,12 @@ for k = 1:length(matFiles)
         continue;
     end
 
+    % Pulizia zeri espliciti
+    A = spfun(@(x) x, A);
+
     % Misura memoria prima della risoluzione
     vars_before = whos;
     mem_before = sum([vars_before.bytes]) / 1024^2;
-
-    % Pulizia zeri espliciti
-    A = spfun(@(x) x, A);
 
     n = size(A,1);
     xe = ones(n,1);
