@@ -63,6 +63,8 @@ for k = 1:length(matFiles)
     clear data A xe b x;
 end
 
+set(groot, 'DefaultFigureRenderer', 'painters');
+
 % --- Tabella risultati --- %
 T = table(matrixNames.', times.', memories.', errors.', ...
     'VariableNames', {'Matrix', 'Time_s', 'Memory_MB', 'Relative_Error'});
