@@ -74,44 +74,45 @@ disp(T);
 
 % --- Grafico Tempo --- %
 figure;
-plot(1:length(matFiles), times, '-o', 'LineWidth', 2, 'Color', [1 0.8 0]);
+semilogy(1:length(matFiles), times, '-o', 'LineWidth', 2, 'Color', [1 0.8 0]);
 xticks(1:length(matFiles));
 xticklabels(matrixNames);
 xtickangle(45);
-ylabel('Tempo (s)');
+ylabel('Tempo (s) - scala log');
 xlabel('Matrice');
 title('Tempo di risoluzione per ciascuna matrice');
 grid on;
 
 % --- Grafico Memoria --- %
 figure;
-plot(1:length(matFiles), memories, '-o', 'LineWidth', 2, 'Color', [1 0.5 0]);
+semilogy(1:length(matFiles), memories, '-o', 'LineWidth', 2, 'Color', [1 0.5 0]);
 xticks(1:length(matFiles));
 xticklabels(matrixNames);
 xtickangle(45);
-ylabel('Memoria utilizzata (MB)');
+ylabel('Memoria utilizzata (MB) - scala log');
 xlabel('Matrice');
 title('Memoria utilizzata per ciascuna matrice');
 grid on;
 
 % --- Grafico Errore --- %
 figure;
-plot(1:length(matFiles), errors, '-o', 'LineWidth', 2, 'Color', [0 0.6 0]);
+semilogy(1:length(matFiles), errors, '-o', 'LineWidth', 2, 'Color', [0 0.6 0]);
 xticks(1:length(matFiles));
 xticklabels(matrixNames);
 xtickangle(45);
-ylabel('Errore relativo');
+ylabel('Errore relativo - scala log');
 xlabel('Matrice');
 title('Errore relativo per ciascuna matrice');
 grid on;
 
+
 % --- Grafico complessivo --- %
 figure;
-hold on;
-
 semilogy(1:length(matFiles), memories, '-o', 'LineWidth', 2, 'Color', [1 0.5 0]); % memory
+hold on; 
 semilogy(1:length(matFiles), times, '-o', 'LineWidth', 2, 'Color', [1 0.8 0]);   % time
 semilogy(1:length(matFiles), errors, '-o', 'LineWidth', 2, 'Color', [0 0.6 0]);  % error
+hold off;
 
 xticks(1:length(matFiles));
 xticklabels(matrixNames);
@@ -119,5 +120,5 @@ xtickangle(45);
 
 ylabel('Valore (scala log)');
 title('Prestazioni risoluzione sistemi lineari');
-legend({'Memory (MB)', 'Time (s)', 'Relative Error'}, 'Location', 'northwest');
+legend({'Memory (MB)', 'Time (s)', 'Relative Error'}, 'Location', 'southeast');
 grid on;
