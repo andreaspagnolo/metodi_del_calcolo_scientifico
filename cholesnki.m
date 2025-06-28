@@ -32,13 +32,28 @@ function memMB = getMemoryResidentMB_mac()
 end
 
 % Funzione per leggere memoria residente attuale su Windows tramite PowerShell
-function memMB = getMemoryResidentMB_win()
-    memMB = NaN;
+function peakMB = getMemoryPeakMB_win()
+    peakMB = NaN;
     try
-        memInfo = memory;
-        memMB = memInfo.MemUsedMATLAB / (1024^2);
+        pid = feature('getpid');
+        [status, cmdout] = system(sprintf('powershell (Get-Process -Id %d).PeakWorkingSet64 / 1MB', pid));
+        if status == 0
+            peakMB = str2double(strtrim(cmdout));
+        end
     catch
-        memMB = NaN;
+        try % Fallback 1: WorkingSet
+            [status, cmdout] = system(sprintf('powershell (Get-Process -Id %d).WorkingSet / 1MB', pid));
+            if status == 0
+                peakMB = str2double(strtrim(cmdout));
+            end
+        catch
+            try % Fallback 2: Memoria MATLAB
+                memInfo = memory;
+                peakMB = memInfo.MemUsedMATLAB / (1024^2);
+            catch
+                peakMB = NaN;
+            end
+        end
     end
 end
 
