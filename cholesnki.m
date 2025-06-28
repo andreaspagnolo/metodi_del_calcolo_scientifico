@@ -1,5 +1,66 @@
 clearvars; clc;
 
+% Funzione per leggere il picco massimo memoria su Linux
+function peakMB = getMemoryPeakMB_linux()
+    peakMB = NaN;
+    try
+        status = fileread('/proc/self/status');
+        expr = 'VmHWM:\s+(\d+) kB';
+        tokens = regexp(status, expr, 'tokens');
+        if ~isempty(tokens)
+            peakKB = str2double(tokens{1}{1});
+            peakMB = peakKB / 1024;
+        end
+    catch
+        peakMB = NaN;
+    end
+end
+
+% Funzione per leggere memoria residente attuale su macOS
+function memMB = getMemoryResidentMB_mac()
+    memMB = NaN;
+    try
+        pid = feature('getpid');
+        [status, cmdout] = system(sprintf('ps -o rss= -p %d', pid));
+        if status == 0
+            valKB = str2double(strtrim(cmdout));
+            memMB = valKB / 1024;
+        end
+    catch
+        memMB = NaN;
+    end
+end
+
+% Funzione per leggere memoria residente attuale su Windows tramite PowerShell
+function memMB = getMemoryResidentMB_win()
+    memMB = NaN;
+    try
+        memInfo = memory;
+        memMB = memInfo.MemUsedMATLAB / (1024^2);
+    catch
+        memMB = NaN;
+    end
+end
+
+
+% Funzione wrapper che chiama quella giusta a seconda OS
+function peakMemMB = getPeakMemory()
+    if isunix && ~ismac
+        % Linux
+        peakMemMB = getMemoryPeakMB_linux();
+    elseif ismac
+        % macOS (non ha VmHWM, uso memoria attuale)
+        peakMemMB = getMemoryResidentMB_mac();
+    elseif ispc
+        % Windows (uso memoria attuale)
+        peakMemMB = getMemoryResidentMB_win();
+    else
+        peakMemMB = NaN;
+    end
+end
+
+% --- Inizio script principale ---
+
 % Lista dei file con le matrici
 matFiles = {
     'data/ex15.mat', 
@@ -11,18 +72,19 @@ matFiles = {
     'data/G3_circuit.mat'
 };
 
-% Preallocazione
+% Preallocazione risultati
 matrixNames = strings(1, length(matFiles));
 times = zeros(1, length(matFiles));
 errors = zeros(1, length(matFiles));
-memories = zeros(1, length(matFiles));
+memories_diff = zeros(1, length(matFiles));
+memories_peak = zeros(1, length(matFiles));
 
 for k = 1:length(matFiles)
 
     data = load(matFiles{k}, 'Problem');
     A = sparse(data.Problem.A);
 
-    %controllo simmetria
+    % Controllo simmetria
     if ~issymmetric(A)
         fprintf('[SKIP] Matrice non simmetrica (%d×%d)\n', size(A,1), size(A,2));
         continue;
@@ -31,9 +93,10 @@ for k = 1:length(matFiles)
     % Pulizia zeri espliciti
     A = spfun(@(x) x, A);
 
-    % Misura memoria prima della risoluzione
+    % Misura memoria prima risoluzione
     vars_before = whos;
-    mem_before = sum([vars_before.bytes]) / 1024^2;
+    mem_before_vars = sum([vars_before.bytes]) / 1024^2;
+    mem_before_sys = getPeakMemory();
 
     n = size(A,1);
     xe = ones(n,1);
@@ -44,12 +107,16 @@ for k = 1:length(matFiles)
     x = A \ b;
     t = toc;
 
-    % Misura memoria dopo la risoluzione
+    % Misura memoria dopo risoluzione
     vars_after = whos;
-    mem_after = sum([vars_after.bytes]) / 1024^2;
+    mem_after_vars = sum([vars_after.bytes]) / 1024^2;
+    mem_after_sys = getPeakMemory();
 
-    % Memoria effettiva usata per la soluzione
-    mem_used = mem_after - mem_before;
+    % Differenza memoria tra dopo e prima (variabili MATLAB)
+    mem_used_diff = mem_after_vars - mem_before_vars;
+
+    % Picco massimo memoria (da sistema operativo)
+    mem_used_peak = max(mem_before_sys, mem_after_sys);
 
     % Calcolo errore relativo
     err = norm(x - xe) / norm(xe);
@@ -58,7 +125,8 @@ for k = 1:length(matFiles)
     matrixNames(k) = data.Problem.name;
     times(k) = t;
     errors(k) = err;
-    memories(k) = mem_used;
+    memories_diff(k) = mem_used_diff;
+    memories_peak(k) = mem_used_peak;
 
     clear data A xe b x;
 end
@@ -66,13 +134,14 @@ end
 set(groot, 'DefaultFigureRenderer', 'painters');
 
 % --- Tabella risultati --- %
-T = table(matrixNames.', times.', memories.', errors.', ...
-    'VariableNames', {'Matrix', 'Time_s', 'Memory_MB', 'Relative_Error'});
+T = table(matrixNames.', times.', memories_diff.', memories_peak.', errors.', ...
+    'VariableNames', {'Matrix', 'Time_s', 'Memory_Diff_MB', 'Memory_Peak_MB', 'Relative_Error'});
 
 disp('--- Risultati delle simulazioni ---');
 disp(T);
 
-% --- Grafico Tempo --- %
+% --- Grafici --- %
+
 figure;
 semilogy(1:length(matFiles), times, '-o', 'LineWidth', 2, 'Color', [1 0.8 0]);
 xticks(1:length(matFiles));
@@ -83,18 +152,20 @@ xlabel('Matrice');
 title('Tempo di risoluzione per ciascuna matrice');
 grid on;
 
-% --- Grafico Memoria --- %
 figure;
-semilogy(1:length(matFiles), memories, '-o', 'LineWidth', 2, 'Color', [1 0.5 0]);
+semilogy(1:length(matFiles), memories_diff, '-o', 'LineWidth', 2, 'Color', [1 0.5 0]);
+hold on;
+semilogy(1:length(matFiles), memories_peak, '-o', 'LineWidth', 2, 'Color', [0.7 0.2 0]);
+hold off;
 xticks(1:length(matFiles));
 xticklabels(matrixNames);
 xtickangle(45);
-ylabel('Memoria utilizzata (MB) - scala log');
+ylabel('Memoria (MB) - scala log');
 xlabel('Matrice');
-title('Memoria utilizzata per ciascuna matrice');
+title('Memoria utilizzata (differenza e picco massimo)');
+legend({'Differenza Memoria Variabili MATLAB', 'Picco Memoria OS'}, 'Location', 'best');
 grid on;
 
-% --- Grafico Errore --- %
 figure;
 semilogy(1:length(matFiles), errors, '-o', 'LineWidth', 2, 'Color', [0 0.6 0]);
 xticks(1:length(matFiles));
@@ -106,19 +177,21 @@ title('Errore relativo per ciascuna matrice');
 grid on;
 
 
-% --- Grafico complessivo --- %
+% --- Grafico cumulativo --- %
 figure;
-semilogy(1:length(matFiles), memories, '-o', 'LineWidth', 2, 'Color', [1 0.5 0]); % memory
-hold on; 
-semilogy(1:length(matFiles), times, '-o', 'LineWidth', 2, 'Color', [1 0.8 0]);   % time
-semilogy(1:length(matFiles), errors, '-o', 'LineWidth', 2, 'Color', [0 0.6 0]);  % error
+semilogy(1:length(matFiles), times, '-o', 'LineWidth', 2, 'Color', [1 0.8 0], 'DisplayName', 'Time (s)');
+hold on;
+semilogy(1:length(matFiles), memories_diff, '-s', 'LineWidth', 2, 'Color', [1 0.5 0], 'DisplayName', 'Memory Diff (MB)');
+semilogy(1:length(matFiles), memories_peak, '-d', 'LineWidth', 2, 'Color', [0.7 0.2 0], 'DisplayName', 'Memory Peak (MB)');
+semilogy(1:length(matFiles), errors, '-^', 'LineWidth', 2, 'Color', [0 0.6 0], 'DisplayName', 'Relative Error');
 hold off;
 
 xticks(1:length(matFiles));
 xticklabels(matrixNames);
 xtickangle(45);
 
-ylabel('Valore (scala log)');
-title('Prestazioni risoluzione sistemi lineari');
-legend({'Memory (MB)', 'Time (s)', 'Relative Error'}, 'Location', 'southeast');
+ylabel('Valori (scala log)');
+xlabel('Matrice');
+title('Confronto cumulativo metriche risoluzione');
+legend('Location', 'southeast');
 grid on;

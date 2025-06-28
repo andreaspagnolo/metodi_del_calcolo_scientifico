@@ -3,19 +3,23 @@ import numpy as np
 
 # Dati
 windows_data = {
-    "Matrix": ["FIDAP/ex15", "MaxPlanck/shallow water1", "Rothberg/cfd1", "Rothberg/cfd2", 
-               "Missgott/parabolic_fem", "GHS_psdef/apache2", "AWD/G3_circuit", "Janna/Stocf-1465"],
-    "Time_s": [0.012166, 0.14099, 0.87437, 1.5484, 1.2263, 4.1948, 5.9447, 124.66],
-    "Memory_MB": [0.052391, 0.625, 0.53906, 0.94177, 4.0117, 5.4564, 12.096, 11.178],
-    "Relative_Error": [6.211e-07, 2.3773e-16, 9.6023e-14, 4.3156e-13, 1.0479e-12, 4.3914e-11, 3.5757e-12, 2.1391e-10]
+    "Matrix": [
+        "FIDAP/ex15", "MaxPlanck/shallow_water1", "Rothberg/cfd1", "Rothberg/cfd2",
+        "Wissgott/parabolic_fem", "GHS_psdef/apache2", "AMD/G3_circuit", "Janna/StocF-1465"
+    ],
+    "Time_s": [0.076166, 0.1605, 0.99327, 1.7152, 1.3306, 4.3139, 5.908, 1388.6],
+    "Memory_MB": [0.16819, 1.8859, 1.6172, 2.8253, 12.035, 16.369, 36.289, 33.534],
+    "Relative_Error": [6.211e-07, 2.3773e-16, 9.6023e-14, 4.3156e-13, 1.0479e-12, 4.3914e-11, 3.5757e-12, 2.4346e-10]
 }
 
 linux_data = {
-    "Matrix": ["FIDAP/ext5", "MaxPlanck/shallow_material", "Rothberg/cfdi", "Rothberg/cfd2",
-               "Missgott/parabolic_fem", "RMS_pest/Pagache2", "AVO/GS_circuit", "Janna/StoCF-1465"],
-    "Time_s": [0.911945, 0.16789, 0.76054, 1.6237, 1.2802, 4.2482, 6.0876, 118.97],
-    "Memory_MB": [0.652391, 9.625, 9.53906, 9.94177, 4.0517, 5.4564, 12.896, 11.178],
-    "Relative_Error": [6.211e-07, 2.3773e-16, 9.6923e-14, 4.3156e-13, 1.0978e-12, 4.3914e-11, 3.5757e-12, 1.1825e-10]
+    "Matrix": [
+        "FIDAP/ex15", "MaxPlanck/shallow_water1", "Rothberg/cfd1", "Rothberg/cfd2",
+        "Wissgott/parabolic_fem", "GHS_psdef/apache2", "AMD/G3_circuit", "Janna/StocF-1465"
+    ],
+    "Time_s": [0.010164, 0.15419, 0.75225, 1.9068, 1.2791, 4.2278, 5.8966, 115.92],
+    "Memory_MB": [0.16819, 1.8859, 1.6172, 2.8253, 12.035, 16.369, 36.289, 33.534],
+    "Relative_Error": [6.211e-07, 2.3773e-16, 9.6023e-14, 4.3156e-13, 1.0479e-12, 4.3914e-11, 3.5757e-12, 1.1825e-10]
 }
 
 #Grafico del tempo di esecuzione e dell'errore relativo
