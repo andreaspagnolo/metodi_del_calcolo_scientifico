@@ -36,18 +36,21 @@ function peakMB = getMemoryPeakMB_win()
     peakMB = NaN;
     try
         pid = feature('getpid');
-        [status, cmdout] = system(sprintf('powershell (Get-Process -Id %d).PeakWorkingSet64 / 1MB', pid));
+        % Divido per 1MB = 1048576
+        cmd = sprintf('powershell -Command "(Get-Process -Id %d).PeakWorkingSet64 / 1MB"', pid);
+        [status, cmdout] = system(cmd);
         if status == 0
             peakMB = str2double(strtrim(cmdout));
         end
     catch
-        try % Fallback 1: WorkingSet
-            [status, cmdout] = system(sprintf('powershell (Get-Process -Id %d).WorkingSet / 1MB', pid));
+        try
+            cmd = sprintf('powershell -Command "(Get-Process -Id %d).WorkingSet64 / 1MB"', pid);
+            [status, cmdout] = system(cmd);
             if status == 0
                 peakMB = str2double(strtrim(cmdout));
             end
         catch
-            try % Fallback 2: Memoria MATLAB
+            try
                 memInfo = memory;
                 peakMB = memInfo.MemUsedMATLAB / (1024^2);
             catch
@@ -56,6 +59,7 @@ function peakMB = getMemoryPeakMB_win()
         end
     end
 end
+
 
 
 % Funzione wrapper che chiama quella giusta a seconda OS
