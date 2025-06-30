@@ -36,15 +36,14 @@ function peakMB = getMemoryPeakMB_win()
     peakMB = NaN;
     try
         pid = feature('getpid');
-        % Divido per 1MB = 1048576
-        cmd = sprintf('powershell -Command "(Get-Process -Id %d).PeakWorkingSet64 / 1MB"', pid);
+        cmd = sprintf('powershell -Command "[math]::Round((Get-Process -Id %d).PeakWorkingSet64 / 1048576)"', pid);
         [status, cmdout] = system(cmd);
         if status == 0
             peakMB = str2double(strtrim(cmdout));
         end
     catch
         try
-            cmd = sprintf('powershell -Command "(Get-Process -Id %d).WorkingSet64 / 1MB"', pid);
+            cmd = sprintf('powershell -Command "[math]::Round((Get-Process -Id %d).WorkingSet64 / 1048576)"', pid);
             [status, cmdout] = system(cmd);
             if status == 0
                 peakMB = str2double(strtrim(cmdout));
@@ -59,6 +58,7 @@ function peakMB = getMemoryPeakMB_win()
         end
     end
 end
+
 
 
 
