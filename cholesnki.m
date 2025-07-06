@@ -16,18 +16,6 @@ function peakMB = getMemoryPeakMB_linux()
     end
 end
 
-% Funzione wrapper che chiama la funzione del picco di memoria su windows
-function peakMemMB = getPeakMemory()
-    if isunix && ~ismac
-        % Linux
-        peakMemMB = getMemoryPeakMB_linux();
-    else
-        peakMemMB = NaN;
-    end
-end
-
-% --- Inizio script principale ---
-
 % Lista dei file con le matrici
 matFiles = {
     'data/ex15.mat', 
@@ -63,7 +51,7 @@ for k = 1:length(matFiles)
     % Misura memoria prima risoluzione
     vars_before = whos;
     mem_before_vars = sum([vars_before.bytes]) / 1024^2;
-    mem_before_sys = getPeakMemory();
+    mem_before_sys = getMemoryPeakMB_linux();
 
     n = size(A,1);
     xe = ones(n,1);
@@ -77,7 +65,7 @@ for k = 1:length(matFiles)
     % Misura memoria dopo risoluzione
     vars_after = whos;
     mem_after_vars = sum([vars_after.bytes]) / 1024^2;
-    mem_after_sys = getPeakMemory();
+    mem_after_sys = getMemoryPeakMB_linux();
 
     % Differenza memoria tra dopo e prima (variabili MATLAB)
     mem_used_diff = mem_after_vars - mem_before_vars;
