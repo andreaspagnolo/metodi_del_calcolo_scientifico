@@ -40,7 +40,7 @@ class ZoomableCanvas(ttk.Frame):
         else:
             delta = -1 if event.delta < 0 else 1
 
-        new_scale = self.scale * (ZOOM_FACTOR ** (-delta))
+        new_scale = self.scale * (ZOOM_FACTOR ** (delta))
         self.scale = max(0.1, min(10.0, new_scale))
 
         self.apply_zoom()
