@@ -1,109 +1,10 @@
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
-from PIL import Image, ImageTk
-import numpy as np
-from scipy.fftpack import dctn, idctn
+from PIL import Image
 import os
 
-def dct2(block):
-    return dctn(block, type=2, norm='ortho')
-
-def idct2(block):
-    return idctn(block, type=2, norm='ortho')
-
-class ZoomableCanvas(ttk.Frame):
-    def __init__(self, parent, title):
-        super().__init__(parent)
-        self.title = ttk.Label(self, text=title)
-        self.title.pack()
-
-        self.canvas = tk.Canvas(self, background='#808080')
-        self.canvas.pack(fill='both', expand=True)
-
-        self.image = None
-        self.tk_img = None
-        self.scale = 1.0
-        self.current_width = 0
-        self.current_height = 0
-
-        # Binding per eventi
-        self.canvas.bind("<Configure>", self.on_canvas_resize)
-        self.canvas.bind("<MouseWheel>", self.on_mousewheel)      # Windows/Mac
-        self.canvas.bind("<Button-4>", lambda e: self.on_mousewheel(-1))  # Linux (rotella su)
-        self.canvas.bind("<Button-5>", lambda e: self.on_mousewheel(1))   # Linux (rotella giù)
-
-    def on_mousewheel(self, event):
-        ZOOM_FACTOR = 1.05
-
-        if isinstance(event, int):
-            delta = event
-        else:
-            delta = -1 if event.delta < 0 else 1
-
-        new_scale = self.scale * (ZOOM_FACTOR ** (delta))
-        self.scale = max(0.1, min(10.0, new_scale))
-
-        self.apply_zoom()
-        return "break"
-
-    def display_image(self, pil_img):
-        self.image = pil_img
-        self.update_image_fit()
-
-    def update_image_fit(self):
-        if not self.image:
-            return
-
-        canvas_width = self.canvas.winfo_width()
-        canvas_height = self.canvas.winfo_height()
-
-        if canvas_width <= 1 or canvas_height <= 1:
-            self.after(100, self.update_image_fit)
-            return
-
-        img_width, img_height = self.image.size
-
-        if img_width > canvas_width or img_height > canvas_height:
-            scale_w = canvas_width / img_width
-            scale_h = canvas_height / img_height
-            self.scale = min(scale_w, scale_h)
-        else:
-            self.scale = 1.0
-
-        new_w = int(img_width * self.scale)
-        new_h = int(img_height * self.scale)
-
-        resized = self.image.resize((new_w, new_h), Image.LANCZOS)
-        self.tk_img = ImageTk.PhotoImage(resized)
-
-        self.canvas.delete('all')
-        x = (canvas_width - new_w) // 2
-        y = (canvas_height - new_h) // 2
-        self.canvas.create_image(x, y, anchor='nw', image=self.tk_img)
-
-        self.current_width = new_w
-        self.current_height = new_h
-
-    def on_canvas_resize(self, event):
-        self.update_image_fit()
-
-    def apply_zoom(self):
-        if not self.image:
-            return
-
-        img_width, img_height = self.image.size
-        new_w = int(img_width * self.scale)
-        new_h = int(img_height * self.scale)
-
-        resized = self.image.resize((new_w, new_h), Image.LANCZOS)
-        self.tk_img = ImageTk.PhotoImage(resized)
-
-        canvas_width = self.canvas.winfo_width()
-        canvas_height = self.canvas.winfo_height()
-        x = max((canvas_width - new_w) // 2, 0)
-        y = max((canvas_height - new_h) // 2, 0)
-        self.canvas.delete('all')
-        self.canvas.create_image(x, y, anchor='nw', image=self.tk_img)
+from utils import ZoomableCanvas
+from core import compress_image
 
 class DCTCompressorApp:
     def __init__(self, root):
@@ -192,29 +93,8 @@ class DCTCompressorApp:
         F = self.F_var.get()
         d = self.d_var.get()
 
-        arr = np.array(self.image, dtype=np.float64)
-        h, w = arr.shape
-
-        w = w - (w % F)
-        h = h - (h % F)
-        arr = arr[:h, :w]
-        arr_comp = np.zeros_like(arr)
-
-        for i in range(0, h, F):
-            for j in range(0, w, F):
-                block = arr[i:i+F, j:j+F]
-                coeffs = dct2(block)
-                for k in range(F):
-                    for l in range(F):
-                        if k + l >= d:
-                            coeffs[k, l] = 0
-                block_rec = idct2(coeffs)
-                block_rec = np.round(block_rec)
-                block_rec[block_rec < 0] = 0
-                block_rec[block_rec > 255] = 255
-                arr_comp[i:i+F, j:j+F] = block_rec
-
-        img_comp = Image.fromarray(arr_comp.astype(np.uint8))
+        arr_comp = compress_image(self.image, F, d)
+        img_comp = Image.fromarray(arr_comp)
         self.compressed_image = img_comp
         self.comp_canvas.display_image(img_comp)
 
