@@ -78,7 +78,7 @@ class DCTCompressorApp:
 
                 # Calcola limiti dinamici per F
                 w, h = img.size
-                max_F = min(w, h) // 2
+                max_F = min(w, h)
                 max_F = max(2, max_F)
                 self.F_spin.config(to=max_F)
                 if self.F_var.get() > max_F:
@@ -99,7 +99,7 @@ class DCTCompressorApp:
     def apply_compression(self):
         F = self.F_var.get()
         w, h = self.image.size
-        max_F = min(w, h) // 2
+        max_F = min(w, h)
         if F > max_F:
             messagebox.showerror("Errore", f"\"F\" troppo grande. Massimo consentito: {max_F}")
             return
