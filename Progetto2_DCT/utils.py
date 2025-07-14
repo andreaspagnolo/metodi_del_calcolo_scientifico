@@ -91,7 +91,7 @@ class ZoomableCanvas(ttk.Frame):
 
         canvas_width = self.canvas.winfo_width()
         canvas_height = self.canvas.winfo_height()
-        x = max((canvas_width - new_w) // 2, 0)
-        y = max((canvas_height - new_h) // 2, 0)
+        x = (canvas_width - new_w) // 2
+        y = (canvas_height - new_h) // 2
         self.canvas.delete('all')
         self.canvas.create_image(x, y, anchor='nw', image=self.tk_img)
