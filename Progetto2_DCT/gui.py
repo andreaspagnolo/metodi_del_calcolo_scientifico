@@ -63,7 +63,7 @@ class DCTCompressorApp:
         self.d_spin.grid(row=3, column=1, sticky="W")
 
         # Label per mostrare il range valido di d
-        self.d_range_label = ttk.Label(top_frame, text="(0 ≤ d ≤ ?)", font=("Helvetica", 8))
+        self.d_range_label = ttk.Label(top_frame, text="(0 ≤ d ≤ ?)", font=(11))
         self.d_range_label.grid(row=3, column=2, sticky="W", padx=(5, 0))
 
         self.apply_button = ttk.Button(
