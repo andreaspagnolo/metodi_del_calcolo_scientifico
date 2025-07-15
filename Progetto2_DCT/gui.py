@@ -16,9 +16,6 @@ class DCTCompressorApp:
         self.compressed_image = None
         self.updating_params = False  # Flag per evitare loop infiniti
 
-        # Configura uno stile esplicito nero
-        self.setup_dark_theme()
-
         self.mainframe = ttk.Frame(root, padding="15")
         self.mainframe.pack(fill='both', expand=True)
 
@@ -86,32 +83,6 @@ class DCTCompressorApp:
 
         # Inizializza i controlli
         self.update_parameter_limits()
-
-    def setup_dark_theme(self):
-        """Configura un tema scuro consistente per l'applicazione"""
-        # Configura la finestra principale
-        self.root.configure(bg='#2b2b2b')
-        
-        # Configura lo stile ttk
-        style = ttk.Style()
-        
-        # Configura i colori per tutti i widget ttk
-        style.configure('TFrame', background='#2b2b2b')
-        style.configure('TLabel', background='#2b2b2b', foreground='white')
-        style.configure('TButton', background='#404040', foreground='white', 
-                       borderwidth=1, focuscolor='none')
-        style.map('TButton', 
-                  background=[('active', '#555555'), ('pressed', '#666666')])
-        
-        # Configura gli Spinbox (più complesso perché non è completamente ttk)
-        style.configure('TSpinbox', fieldbackground='#404040', background='#404040',
-                       foreground='white', borderwidth=1, insertcolor='white')
-        style.map('TSpinbox', 
-                  fieldbackground=[('focus', '#505050')],
-                  background=[('active', '#555555')])
-        
-        # Stile speciale per le etichette rosse (errore)
-        style.configure('Error.TLabel', background='#2b2b2b', foreground='red')
 
     def choose_file(self):
         filepath = filedialog.askopenfilename(filetypes=[("Bitmap Images", "*.bmp")])
@@ -207,8 +178,8 @@ class DCTCompressorApp:
         if self.image is None:
             self.apply_button.config(state="disabled")
             # Ripristina i colori normali quando non c'è immagine
-            self.F_label.configure(style='TLabel')
-            self.d_label.configure(style='TLabel')
+            self.F_label.config(foreground="")
+            self.d_label.config(foreground="")
             return False
 
         try:
@@ -219,20 +190,20 @@ class DCTCompressorApp:
             min_F, max_F = self.get_F_limits()
             if F < min_F or F > max_F:
                 self.apply_button.config(state="disabled")
-                self.F_label.configure(style='Error.TLabel')
-                self.d_label.configure(style='TLabel')  # Ripristina d se F è errato
+                self.F_label.config(foreground="red")
+                self.d_label.config(foreground="")  # Ripristina d se F è errato
                 return False
             else:
-                self.F_label.configure(style='TLabel')
+                self.F_label.config(foreground="")
             
             # Verifica i limiti di d
             min_d, max_d = self.get_d_limits(F)
             if d < min_d or d > max_d:
                 self.apply_button.config(state="disabled")
-                self.d_label.configure(style='Error.TLabel')
+                self.d_label.config(foreground="red")
                 return False
             else:
-                self.d_label.configure(style='TLabel')
+                self.d_label.config(foreground="")
             
             self.apply_button.config(state="normal")
             return True
@@ -240,8 +211,8 @@ class DCTCompressorApp:
         except (ValueError, tk.TclError):
             self.apply_button.config(state="disabled")
             # In caso di errore di parsing, colora entrambi di rosso
-            self.F_label.configure(style='Error.TLabel')
-            self.d_label.configure(style='Error.TLabel')
+            self.F_label.config(foreground="red")
+            self.d_label.config(foreground="red")
             return False
 
     def apply_compression(self):
