@@ -1,7 +1,7 @@
 # Metodi del Calcolo Scientifico – Progetto 1
 
-**Anno Accademico:** 2024–2025   
-**Tema:** Sistemi lineari con matrici sparse simmetriche e definite positive
+**Anno Accademico 2024-2025 – Metodi del Calcolo Scientifico**  
+Autori: [andreaspagnolo](https://github.com/andreaspagnolo)  e [davidefalanga01](https://github.com/davidefalanga01)
 
 ---
 
