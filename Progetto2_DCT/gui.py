@@ -50,7 +50,11 @@ class DCTCompressorApp:
         self.d_spin = ttk.Spinbox(
             top_frame, from_=0, to=1000, textvariable=self.d_var, width=5
         )
+        
         self.d_spin.grid(row=3, column=1, sticky="W")
+
+        self.F_var.trace_add("write", self.validate_F_and_d)
+        self.d_var.trace_add("write", self.validate_F_and_d)
 
         self.apply_button = ttk.Button(
             top_frame, text="Applica compressione", command=self.apply_compression, state="disabled"
@@ -81,43 +85,72 @@ class DCTCompressorApp:
                 max_F = min(w, h)
                 max_F = max(2, max_F)
                 self.F_spin.config(to=max_F)
-                if self.F_var.get() > max_F:
-                    self.F_var.set(max_F)
-
                 self.update_d_limit()
             except:
                 messagebox.showerror("Errore", "Immagine non valida")
 
     def update_d_limit(self):
-        F = self.F_var.get()
+        try:
+            F = int(self.F_var.get())
+        except (ValueError, tk.TclError):
+            return  # F non è ancora valido, ignora
+
         max_d = 2 * F - 2
         self.d_spin.config(to=max_d)
-        if self.d_var.get() > max_d:
-            self.d_var.set(max_d)
+
+        try:
+            if self.d_var.get() > max_d:
+                self.d_var.set(max_d)
+        except tk.TclError:
+            pass  
+
 
 
     def apply_compression(self):
-        F = self.F_var.get()
-        w, h = self.image.size
-        max_F = min(w, h)
-        if F > max_F:
-            messagebox.showerror("Errore", f"\"F\" troppo grande. Massimo consentito: {max_F}")
-            return
         if self.image is None:
             return
 
+        F = self.F_var.get()
         d = self.d_var.get()
-        max_d = 2 * max_F - 2 
-        if d > max_d:
-            messagebox.showerror("Errore", f"\"d\" troppo grande. Massimo consentito: {max_d}")
-            return
-        if self.image is None:
-            return
 
         arr_comp = compress_image(self.image, F, d)
         img_comp = Image.fromarray(arr_comp)
         self.compressed_image = img_comp
         self.comp_canvas.display_image(img_comp)
+    
+    def show_warning(self, msg):
+            messagebox.showwarning("Valore non valido", msg)
+
+    def validate_F_and_d(self, *args):
+        if self.image is None:
+            self.apply_button.config(state="disabled")
+            return
+
+        w, h = self.image.size
+        max_F = min(w, h)
+
+        # Verifica F
+        try:
+            F = int(self.F_var.get())
+        except (ValueError, tk.TclError):
+            self.apply_button.config(state="disabled")
+            return
+        if F < 2 or F > max_F:
+            self.apply_button.config(state="disabled")
+            return
+
+        # Verifica d
+        try:
+            d = int(self.d_var.get())
+        except (ValueError, tk.TclError):
+            self.apply_button.config(state="disabled")
+            return
+        max_d = 2 * F - 2
+        if d < 0 or d > max_d:
+            self.apply_button.config(state="disabled")
+            return
+
+        self.apply_button.config(state="normal")
 
 if __name__ == "__main__":
     root = tk.Tk()
