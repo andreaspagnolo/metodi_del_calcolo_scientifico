@@ -14,6 +14,7 @@ class DCTCompressorApp:
 
         self.image = None
         self.compressed_image = None
+        self.updating_params = False  # Flag per evitare loop infiniti
 
         self.mainframe = ttk.Frame(root, padding="15")
         self.mainframe.pack(fill='both', expand=True)
@@ -38,23 +39,29 @@ class DCTCompressorApp:
             top_frame, text="Scegli Immagine BMP", command=self.choose_file
         ).grid(row=1, column=0, columnspan=3, pady=5, sticky='nsew')
 
-        ttk.Label(top_frame, text="Dimensione blocchi F:").grid(row=2, column=0, sticky="E")
+        self.F_label = ttk.Label(top_frame, text="Dimensione blocchi F:")
+        self.F_label.grid(row=2, column=0, sticky="E")
         self.F_var = tk.IntVar(value=8)
         self.F_spin = ttk.Spinbox(
-            top_frame, from_=2, to=1000, textvariable=self.F_var, width=5, command=self.update_d_limit
+            top_frame, from_=2, to=1000, textvariable=self.F_var, width=5, 
+            command=self.on_F_changed
         )
         self.F_spin.grid(row=2, column=1, sticky="W")
 
-        ttk.Label(top_frame, text="Soglia frequenze d:").grid(row=3, column=0, sticky="E")
+
+
+        self.d_label = ttk.Label(top_frame, text="Soglia frequenze d:")
+        self.d_label.grid(row=3, column=0, sticky="E")
         self.d_var = tk.IntVar(value=8)
         self.d_spin = ttk.Spinbox(
-            top_frame, from_=0, to=1000, textvariable=self.d_var, width=5
+            top_frame, from_=0, to=1000, textvariable=self.d_var, width=5,
+            command=self.on_d_changed
         )
-        
         self.d_spin.grid(row=3, column=1, sticky="W")
 
-        self.F_var.trace_add("write", self.validate_F_and_d)
-        self.d_var.trace_add("write", self.validate_F_and_d)
+        # Label per mostrare il range valido di d
+        self.d_range_label = ttk.Label(top_frame, text="(0 ≤ d ≤ ?)", font=(12))
+        self.d_range_label.grid(row=3, column=2, sticky="W", padx=(5, 0))
 
         self.apply_button = ttk.Button(
             top_frame, text="Applica compressione", command=self.apply_compression, state="disabled"
@@ -70,6 +77,13 @@ class DCTCompressorApp:
         self.comp_canvas = ZoomableCanvas(canvas_frame, "Compressa")
         self.comp_canvas.pack(side='left', fill='both', expand=True, padx=5)
 
+        # Associa i trace agli IntVar DOPO aver creato tutte le etichette
+        self.F_var.trace_add("write", self.on_F_trace)
+        self.d_var.trace_add("write", self.on_d_trace)
+
+        # Inizializza i controlli
+        self.update_parameter_limits()
+
     def choose_file(self):
         filepath = filedialog.askopenfilename(filetypes=[("Bitmap Images", "*.bmp")])
         if filepath:
@@ -78,79 +92,147 @@ class DCTCompressorApp:
                 self.image = img
                 self.file_label.config(text=os.path.basename(filepath))
                 self.orig_canvas.display_image(img)
-                self.apply_button.config(state="normal")
+                
+                # Aggiorna i limiti dei parametri in base alle dimensioni dell'immagine
+                self.update_parameter_limits()
+                
+            except Exception as e:
+                messagebox.showerror("Errore", f"Immagine non valida: {str(e)}")
 
-                # Calcola limiti dinamici per F
-                w, h = img.size
-                max_F = min(w, h)
-                max_F = max(2, max_F)
-                self.F_spin.config(to=max_F)
-                self.update_d_limit()
-            except:
-                messagebox.showerror("Errore", "Immagine non valida")
+    def get_F_limits(self):
+        """Calcola i limiti validi per F"""
+        if self.image is None:
+            return 2, 1000  # Valori di default
+        
+        w, h = self.image.size
+        max_F = min(w, h)
+        return 2, max(2, max_F)
 
-    def update_d_limit(self):
-        try:
-            F = int(self.F_var.get())
-        except (ValueError, tk.TclError):
-            return  # F non è ancora valido, ignora
-
+    def get_d_limits(self, F):
+        """Calcola i limiti validi per d dato un valore di F"""
         max_d = 2 * F - 2
-        self.d_spin.config(to=max_d)
+        return 0, max_d
+
+    def update_parameter_limits(self):
+        """Aggiorna i limiti dei controlli Spinbox e le etichette informative"""
+        if self.updating_params:
+            return
+        
+        self.updating_params = True
+        
+        try:
+            # Aggiorna i limiti di F
+            min_F, max_F = self.get_F_limits()
+            self.F_spin.config(from_=min_F, to=max_F)
+            
+            # Assicurati che F sia nei limiti validi
+            current_F = self.F_var.get()
+            if current_F < min_F:
+                self.F_var.set(min_F)
+                current_F = min_F
+            elif current_F > max_F:
+                self.F_var.set(max_F)
+                current_F = max_F
+            
+            # Aggiorna i limiti di d in base al valore corrente di F
+            min_d, max_d = self.get_d_limits(current_F)
+            self.d_spin.config(from_=min_d, to=max_d)
+            self.d_range_label.config(text=f"({min_d} ≤ d ≤ {max_d})")
+            
+            # Assicurati che d sia nei limiti validi
+            current_d = self.d_var.get()
+            if current_d < min_d:
+                self.d_var.set(min_d)
+            elif current_d > max_d:
+                self.d_var.set(max_d)
+            
+            # Valida lo stato del pulsante
+            self.validate_parameters()
+            
+        finally:
+            self.updating_params = False
+
+    def on_F_changed(self):
+        """Chiamato quando F viene modificato tramite i pulsanti del Spinbox"""
+        if not self.updating_params:
+            self.update_parameter_limits()
+
+    def on_d_changed(self):
+        """Chiamato quando d viene modificato tramite i pulsanti del Spinbox"""
+        if not self.updating_params:
+            self.validate_parameters()
+
+    def on_F_trace(self, *args):
+        """Chiamato quando F viene modificato (anche tramite digitazione)"""
+        if not self.updating_params:
+            # Usa after per evitare problemi con la validazione durante la digitazione
+            self.root.after_idle(self.update_parameter_limits)
+
+    def on_d_trace(self, *args):
+        """Chiamato quando d viene modificato (anche tramite digitazione)"""
+        if not self.updating_params:
+            self.root.after_idle(self.validate_parameters)
+
+    def validate_parameters(self):
+        """Valida i parametri correnti e abilita/disabilita il pulsante di applicazione"""
+        if self.image is None:
+            self.apply_button.config(state="disabled")
+            # Ripristina i colori normali quando non c'è immagine
+            self.F_label.config(foreground="white")
+            self.d_label.config(foreground="white")
+            return False
 
         try:
-            if self.d_var.get() > max_d:
-                self.d_var.set(max_d)
-        except tk.TclError:
-            pass  
-
-
+            F = self.F_var.get()
+            d = self.d_var.get()
+            
+            # Verifica i limiti di F
+            min_F, max_F = self.get_F_limits()
+            if F < min_F or F > max_F:
+                self.apply_button.config(state="disabled")
+                self.F_label.config(foreground="red")
+                self.d_label.config(foreground="black")  # Ripristina d se F è errato
+                return False
+            else:
+                self.F_label.config(foreground="black")
+            
+            # Verifica i limiti di d
+            min_d, max_d = self.get_d_limits(F)
+            if d < min_d or d > max_d:
+                self.apply_button.config(state="disabled")
+                self.d_label.config(foreground="red")
+                return False
+            else:
+                self.d_label.config(foreground="black")
+            
+            self.apply_button.config(state="normal")
+            return True
+            
+        except (ValueError, tk.TclError):
+            self.apply_button.config(state="disabled")
+            # In caso di errore di parsing, colora entrambi di rosso
+            self.F_label.config(foreground="red")
+            self.d_label.config(foreground="red")
+            return False
 
     def apply_compression(self):
         if self.image is None:
             return
 
+        if not self.validate_parameters():
+            messagebox.showerror("Errore", "Parametri non validi")
+            return
+
         F = self.F_var.get()
         d = self.d_var.get()
 
-        arr_comp = compress_image(self.image, F, d)
-        img_comp = Image.fromarray(arr_comp)
-        self.compressed_image = img_comp
-        self.comp_canvas.display_image(img_comp)
-    
-    def show_warning(self, msg):
-            messagebox.showwarning("Valore non valido", msg)
-
-    def validate_F_and_d(self, *args):
-        if self.image is None:
-            self.apply_button.config(state="disabled")
-            return
-
-        w, h = self.image.size
-        max_F = min(w, h)
-
-        # Verifica F
         try:
-            F = int(self.F_var.get())
-        except (ValueError, tk.TclError):
-            self.apply_button.config(state="disabled")
-            return
-        if F < 2 or F > max_F:
-            self.apply_button.config(state="disabled")
-            return
-
-        # Verifica d
-        try:
-            d = int(self.d_var.get())
-        except (ValueError, tk.TclError):
-            self.apply_button.config(state="disabled")
-            return
-        max_d = 2 * F - 2
-        if d < 0 or d > max_d:
-            self.apply_button.config(state="disabled")
-            return
-
-        self.apply_button.config(state="normal")
+            arr_comp = compress_image(self.image, F, d)
+            img_comp = Image.fromarray(arr_comp)
+            self.compressed_image = img_comp
+            self.comp_canvas.display_image(img_comp)
+        except Exception as e:
+            messagebox.showerror("Errore", f"Errore durante la compressione: {str(e)}")
 
 if __name__ == "__main__":
     root = tk.Tk()
