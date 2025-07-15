@@ -79,8 +79,6 @@ class ZoomableCanvas(ttk.Frame):
     def apply_zoom(self):
         if not self.image:
             return
-        self.offset_x = 0
-        self.offset_y = 0
         self.draw_image()
 
     def draw_image(self):
